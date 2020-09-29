@@ -339,6 +339,11 @@ public interface DebugInfoProvider {
          * @return the line number for the outer or inlined segment.
          */
         int line();
+
+        /**
+         * @return the {@link DebugLineInfo} of the nested inline caller-line
+         */
+        DebugLineInfo getCaller();
     }
 
     interface DebugFrameSizeChange {
