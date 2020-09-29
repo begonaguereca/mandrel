@@ -314,6 +314,16 @@ public interface DebugInfoProvider {
         String symbolNameForMethod();
 
         /**
+         * @return a string identifying the method parameters.
+         */
+        String paramNames();
+
+        /**
+         * @return a string identifying the method return type.
+         */
+        String returnTypeName();
+
+        /**
          * @return the lowest address containing code generated for an outer or inlined code segment
          *         reported at this line represented as an offset into the code segment.
          */

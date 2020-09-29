@@ -71,7 +71,7 @@ public class Range {
     /*
      * Create a primary or secondary range.
      */
-    private Range(String className, String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int line,
+    public Range(String className, String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int line,
                     int modifiers, boolean isDeoptTarget, Range primary) {
         this.fileEntry = fileEntry;
         if (fileEntry != null) {

@@ -1048,6 +1048,16 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         }
 
         @Override
+        public String paramNames() {
+            return method.format("%P");
+        }
+
+        @Override
+        public String returnTypeName() {
+            return method.format("%R");
+        }
+
+        @Override
         public int addressLo() {
             return lo;
         }

@@ -251,6 +251,8 @@ public abstract class DebugInfoBase {
                 String classNameAtLine = TypeEntry.canonicalize(debugLineInfo.className());
                 String methodNameAtLine = debugLineInfo.methodName();
                 String symbolNameAtLine = debugLineInfo.symbolNameForMethod();
+                String paramNamesAtLine = debugLineInfo.paramNames();
+                String returnTypeNameAtLine = debugLineInfo.returnTypeName();
                 int loAtLine = lo + debugLineInfo.addressLo();
                 int hiAtLine = lo + debugLineInfo.addressHi();
                 int line = debugLineInfo.line();
@@ -260,7 +262,7 @@ public abstract class DebugInfoBase {
                  * symbol for them and don't see a break in the address range.
                  */
                 FileEntry subFileEntry = ensureFileEntry(fileNameAtLine, filePathAtLine, cachePathAtLine);
-                Range subRange = new Range(classNameAtLine, methodNameAtLine, symbolNameAtLine, stringTable, subFileEntry, loAtLine, hiAtLine, line, primaryRange);
+                Range subRange = new Range(classNameAtLine, methodNameAtLine, symbolNameAtLine, paramNamesAtLine, returnTypeNameAtLine, stringTable, subFileEntry, loAtLine, hiAtLine, line, 0, false, primaryRange);
                 classEntry.indexSubRange(subRange);
                 try (DebugContext.Scope s = debugContext.scope("Subranges")) {
                     debugContext.log(DebugContext.VERBOSE_LEVEL, "SubRange %s.%s %s %s:%d 0x%x, 0x%x]", classNameAtLine, methodNameAtLine, filePathAtLine, fileNameAtLine, line, loAtLine, hiAtLine);
