@@ -35,6 +35,7 @@ package com.oracle.objectfile.debugentry;
 public class Range {
     private static final String CLASS_DELIMITER = ".";
     private FileEntry fileEntry;
+    private final Range caller;
     private String className;
     private String methodName;
     private String symbolName;
@@ -47,6 +48,8 @@ public class Range {
     private int line;
     private boolean isDeoptTarget;
     private int modifiers;
+    private final boolean isInlined;
+    private final boolean withChildren;
     /*
      * This is null for a primary range.
      */
@@ -57,22 +60,22 @@ public class Range {
      */
     public Range(String className, String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int line,
                     int modifiers, boolean isDeoptTarget) {
-        this(className, methodName, symbolName, paramSignature, returnTypeName, stringTable, fileEntry, lo, hi, line, modifiers, isDeoptTarget, null);
+        this(className, methodName, symbolName, paramSignature, returnTypeName, stringTable, fileEntry, lo, hi, line, modifiers, isDeoptTarget, false, null, false, null);
     }
 
     /*
      * Create a secondary range.
      */
     public Range(String className, String methodName, String symbolName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int line,
-                    Range primary) {
-        this(className, methodName, symbolName, "", "", stringTable, fileEntry, lo, hi, line, 0, false, primary);
+                    boolean isInline, Range primary, boolean withChildren, Range caller) {
+        this(className, methodName, symbolName, "", "", stringTable, fileEntry, lo, hi, line, 0, false, isInline, primary, withChildren, caller);
     }
 
     /*
      * Create a primary or secondary range.
      */
     public Range(String className, String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int line,
-                    int modifiers, boolean isDeoptTarget, Range primary) {
+                    int modifiers, boolean isDeoptTarget, boolean isInline, Range primary, boolean withChildren, Range caller) {
         this.fileEntry = fileEntry;
         if (fileEntry != null) {
             stringTable.uniqueDebugString(fileEntry.getFileName());
@@ -90,7 +93,10 @@ public class Range {
         this.line = line;
         this.isDeoptTarget = isDeoptTarget;
         this.modifiers = modifiers;
+        this.isInlined = isInline;
         this.primary = primary;
+        this.withChildren = withChildren;
+        this.caller = caller;
     }
 
     public boolean contains(Range other) {
@@ -199,5 +205,17 @@ public class Range {
 
     public String getFileName() {
         return fileEntry.getFileName();
+    }
+
+    public boolean isInlined() {
+        return isInlined;
+    }
+
+    public boolean withChildren() {
+        return withChildren;
+    }
+
+    public Range getCaller() {
+        return caller;
     }
 }
