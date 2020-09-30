@@ -258,12 +258,14 @@ public abstract class DebugInfoBase {
                 int hiAtLine = lo + debugLineInfo.addressHi();
                 int line = debugLineInfo.line();
                 Path cachePathAtLine = debugLineInfo.cachePath();
+                Range caller = addCallersSubRanges(debugLineInfo.getCaller(), primaryRange, classEntry, debugContext);
                 /*
                  * Record all subranges even if they have no line or file so we at least get a
                  * symbol for them and don't see a break in the address range.
                  */
                 FileEntry subFileEntry = ensureFileEntry(fileNameAtLine, filePathAtLine, cachePathAtLine);
-                Range subRange = new Range(classNameAtLine, methodNameAtLine, symbolNameAtLine, paramNamesAtLine, returnTypeNameAtLine, stringTable, subFileEntry, loAtLine, hiAtLine, line, 0, false, isInlined, primaryRange, false, null);
+                Range subRange = new Range(classNameAtLine, methodNameAtLine, symbolNameAtLine, paramNamesAtLine, returnTypeNameAtLine,
+                        stringTable, subFileEntry, loAtLine, hiAtLine, line, 0, false, isInlined, primaryRange, false, caller);
                 classEntry.indexSubRange(subRange);
                 try (DebugContext.Scope s = debugContext.scope("Subranges")) {
                     debugContext.log(DebugContext.VERBOSE_LEVEL, "SubRange %s.%s %s %s:%d 0x%x, 0x%x]", classNameAtLine, methodNameAtLine, filePathAtLine, fileNameAtLine, line, loAtLine, hiAtLine);
@@ -347,6 +349,45 @@ public abstract class DebugInfoBase {
             throw new RuntimeException("class entry not found " + typeName);
         }
         return (ClassEntry) typeEntry;
+    }
+
+    /**
+     * Recursively creates the inlined caller subranges for nested inline subranges.
+     *
+     * @param lineInfo
+     * @param primaryRange
+     * @param classEntry
+     * @param debugContext
+     * @return the subrange for {@code lineInfo} linked with all its caller subranges up to the
+     *         primaryRange
+     */
+    @SuppressWarnings("try")
+    private Range addCallersSubRanges(DebugInfoProvider.DebugLineInfo lineInfo, Range primaryRange, ClassEntry classEntry, DebugContext debugContext) {
+        /* Don't process the root method, it is already added as the primary range */
+        if (lineInfo == null || lineInfo.getCaller() == null) {
+            return primaryRange;
+        }
+        Range caller = addCallersSubRanges(lineInfo.getCaller(), primaryRange, classEntry, debugContext);
+        final String fileName = lineInfo.fileName();
+        final Path filePath = lineInfo.filePath();
+        final Path cachePath = lineInfo.cachePath();
+        final String className = lineInfo.className();
+        final String methodName = lineInfo.methodName();
+        final String symbolName = lineInfo.symbolNameForMethod();
+        final String paramNames = lineInfo.paramNames();
+        final String returnTypeName = lineInfo.returnTypeName();
+        final int lo = primaryRange.getLo() + lineInfo.addressLo();
+        final int hi = primaryRange.getLo() + lineInfo.addressHi();
+        final int line = lineInfo.line();
+        FileEntry subFileEntry = ensureFileEntry(fileName, filePath, cachePath);
+        Range subRange = new Range(className, methodName, symbolName, paramNames, returnTypeName, stringTable, subFileEntry,
+                lo, hi, line, 0, false, true, primaryRange, true, caller);
+        classEntry.indexSubRange(subRange);
+        try (DebugContext.Scope s = debugContext.scope("Subranges")) {
+            debugContext.log(DebugContext.VERBOSE_LEVEL, "SubRange %s.%s %s %s:%d 0x%x, 0x%x]",
+                            className, methodName, filePath, fileName, line, lo, hi);
+        }
+        return subRange;
     }
 
     private ClassEntry ensureClassEntry(String className) {
