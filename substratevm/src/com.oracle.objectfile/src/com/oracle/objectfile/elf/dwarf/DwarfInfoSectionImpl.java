@@ -45,6 +45,7 @@ import com.oracle.objectfile.elf.ELFObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
@@ -1183,6 +1184,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pos = p;
         assert classEntry.includesDeoptTarget();
         LinkedList<PrimaryEntry> classPrimaryEntries = classEntry.getPrimaryEntries();
+        assert !classPrimaryEntries.isEmpty();
         String fileName = classEntry.getFileName();
         int lineIndex = getLineIndex(classEntry);
         int abbrevCode = (fileName.length() > 0 ? DwarfDebugInfo.DW_ABBREV_CODE_class_unit1 : DwarfDebugInfo.DW_ABBREV_CODE_class_unit2);
@@ -1206,10 +1208,69 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
             pos = writeAttrData4(lineIndex, buffer, pos);
         }
 
+        /* Keep a map of method names to the corresponding position of their subprogram entry. */
+        HashMap<String, Integer> primaryMap = new HashMap<>();
+        /* The primary file entry should always be first in the local files list. */
+        assert classEntry.localFilesIdx(classEntry.getFileEntry()) == 1;
+
         for (PrimaryEntry primaryEntry : classPrimaryEntries) {
             Range range = primaryEntry.getPrimary();
-            if (range.isDeoptTarget()) {
-                pos = writeMethodLocation(context, classEntry, range, buffer, pos);
+            if (!range.isDeoptTarget()) {
+                continue;
+            }
+            primaryMap.put(range.getFullMethodName(), pos);
+            boolean withChildren = false;
+            /* Go through the subranges and generate abstract debug entries for inlined methods. */
+            for (Range subrange : primaryEntry.getSubranges()) {
+                if (!subrange.isInlined()) {
+                    continue;
+                }
+                withChildren = true;
+                Integer subprogramPos = primaryMap.get(subrange.getFullMethodName());
+                if (subprogramPos == null) {
+                    subprogramPos = pos;
+                    primaryMap.put(subrange.getFullMethodName(), subprogramPos);
+                    pos = writeMethodLocation(context, classEntry, subrange, buffer, pos);
+                }
+            }
+            pos = writeMethodLocation(context, classEntry, range, buffer, pos);
+            if (withChildren) {
+                int depth = 0;
+                /*
+                 * Go through the subranges and generate concrete debug entries for inlined methods.
+                 */
+                for (Range subrange : primaryEntry.getSubranges()) {
+                    if (!subrange.isInlined()) {
+                        continue;
+                    }
+                    Integer subprogramPos = primaryMap.get(subrange.getFullMethodName());
+                    assert subprogramPos != null;
+                    final Range callerSubrange = subrange.getCaller();
+                    assert callerSubrange != null;
+                    Integer fileIndex;
+                    if (callerSubrange == range) {
+                        fileIndex = 1;
+                    } else {
+                        FileEntry subFileEntry = callerSubrange.getFileEntry();
+                        assert subFileEntry != null;
+                        fileIndex = classEntry.localFilesIdx(subFileEntry);
+                        assert fileIndex != null;
+                    }
+                    int previousPos = pos;
+                    pos = writeInlineSubroutine(context, subrange, buffer, pos, subprogramPos - getCUIndex(classEntry), depth, fileIndex);
+                    if (subrange.withChildren()) {
+                        if (previousPos != pos) {
+                            depth++;
+                        }
+                    } else {
+                        while (depth > 0) {
+                            pos = writeAttrNull(buffer, pos);
+                            depth--;
+                        }
+                    }
+                }
+                pos = writeAttrNull(buffer, pos);
+                assert depth == 0 : depth;
             }
         }
         /*
