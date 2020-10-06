@@ -73,6 +73,13 @@ public interface DebugInfoProvider {
         String className();
 
         /**
+         * @return the fully qualified name of the original class owning the compiled method. For
+         *         code segments not originating from substituted methods this should be identical
+         *         to {@link DebugCodeInfo#className()}.
+         */
+        String originalClassName();
+
+        /**
          * @return the name of the compiled method including signature.
          */
         String methodName();
@@ -159,6 +166,13 @@ public interface DebugInfoProvider {
          * @return the fully qualified name of the class owning the outer or inlined method.
          */
         String className();
+
+        /**
+         * @return the fully qualified name of the original class owning the compiled method. For
+         *         code segments not originating from substituted methods this should be identical
+         *         to {@link DebugLineInfo#className()}.
+         */
+        String originalClassName();
 
         /**
          * @return the name of the outer or inlined method including signature.

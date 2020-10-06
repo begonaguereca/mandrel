@@ -152,6 +152,11 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public String className() {
+            return getDeclaringClass(method).getName();
+        }
+
+        @Override
+        public String originalClassName() {
             return javaType.toClassName();
         }
 
@@ -281,6 +286,11 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public String className() {
+            return getDeclaringClass(method).getName();
+        }
+
+        @Override
+        public String originalClassName() {
             return method.format("%H");
         }
 
