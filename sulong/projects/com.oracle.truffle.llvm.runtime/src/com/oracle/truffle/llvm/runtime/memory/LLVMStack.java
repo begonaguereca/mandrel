@@ -306,7 +306,7 @@ public final class LLVMStack {
                     return;
                 }
             } catch (FrameSlotTypeException e) {
-                // frame slot is not initalized
+                // frame slot is not initialized
             }
             CompilerDirectives.transferToInterpreter();
             // The slot was added from the outside while this method executed,

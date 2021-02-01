@@ -82,7 +82,7 @@ import jdk.vm.ci.meta.ResolvedJavaType;
  * newly allocated objects are accessed.
  * 
  * To avoid parsing a large class initializer graph just to find out that the class cannot be
- * initialized anyway, the parsing is aborted using a {@link ClassInitalizerHasSideEffectsException}
+ * initialized anyway, the parsing is aborted using a {@link ClassInitializerHasSideEffectsException}
  * as soon as one of the tests fail.
  */
 class EarlyClassInitializerAnalysis {
@@ -143,15 +143,15 @@ class EarlyClassInitializerAnalysis {
         try (Graph.NodeEventScope nes = graph.trackNodeEvents(new AbortOnDisallowedNode())) {
             builderPhase.apply(graph, context);
             /*
-             * If parsing is not aborted by a ClassInitalizerHasSideEffectsException, it does not
+             * If parsing is not aborted by a ClassInitializerHasSideEffectsException, it does not
              * have any side effect.
              */
             return true;
 
-        } catch (ClassInitalizerHasSideEffectsException ex) {
+        } catch (ClassInitializerHasSideEffectsException ex) {
             return false;
         } catch (BytecodeParser.BytecodeParserError ex) {
-            if (ex.getCause() instanceof ClassInitalizerHasSideEffectsException) {
+            if (ex.getCause() instanceof ClassInitializerHasSideEffectsException) {
                 return false;
             }
             throw ex;
@@ -159,10 +159,10 @@ class EarlyClassInitializerAnalysis {
     }
 }
 
-class ClassInitalizerHasSideEffectsException extends GraalBailoutException {
+class ClassInitializerHasSideEffectsException extends GraalBailoutException {
     private static final long serialVersionUID = 1L;
 
-    ClassInitalizerHasSideEffectsException(String message) {
+    ClassInitializerHasSideEffectsException(String message) {
         super(message);
     }
 }
@@ -197,7 +197,7 @@ class AbortOnUnitializedClassPlugin extends NoClassInitializationPlugin {
     public boolean apply(GraphBuilderContext b, ResolvedJavaType type, Supplier<FrameState> frameState, ValueNode[] classInit) {
         ResolvedJavaMethod clinitMethod = b.getGraph().method();
         if (!type.isInitialized() && !type.isArray() && !type.equals(clinitMethod.getDeclaringClass())) {
-            throw new ClassInitalizerHasSideEffectsException("Reference of class that is not initialized: " + type.toJavaName(true));
+            throw new ClassInitializerHasSideEffectsException("Reference of class that is not initialized: " + type.toJavaName(true));
         }
         return false;
     }
@@ -207,13 +207,13 @@ class AbortOnDisallowedNode extends Graph.NodeEventListener {
     @Override
     public void nodeAdded(Node node) {
         if (node instanceof Invoke) {
-            throw new ClassInitalizerHasSideEffectsException("Non-inlined invoke of method: " + ((Invoke) node).getTargetMethod().format("%H.%n(%p)"));
+            throw new ClassInitializerHasSideEffectsException("Non-inlined invoke of method: " + ((Invoke) node).getTargetMethod().format("%H.%n(%p)"));
 
         } else if (node instanceof AccessFieldNode) {
             ResolvedJavaField field = ((AccessFieldNode) node).field();
             ResolvedJavaMethod clinit = ((StructuredGraph) node.graph()).method();
             if (field.isStatic() && !field.getDeclaringClass().equals(clinit.getDeclaringClass())) {
-                throw new ClassInitalizerHasSideEffectsException("Access of static field from a different class: " + field.format("%H.%n"));
+                throw new ClassInitializerHasSideEffectsException("Access of static field from a different class: " + field.format("%H.%n"));
             }
         } else if (node instanceof UnsafeAccessNode) {
             throw VMError.shouldNotReachHere("Intrinsification of Unsafe methods is not enabled during bytecode parsing");
